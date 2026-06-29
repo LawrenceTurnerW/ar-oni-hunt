@@ -1,0 +1,23 @@
+8th Wall XR Engine — Binary License Notice
+============================================
+
+This project loads `@8thwall/engine-binary` (8th Wall XR Engine) from CDN at
+runtime. The binary is licensed separately from the MIT-licensed framework
+code in this repository.
+
+- Distribution / Engine repo: https://github.com/8thwall/engine
+- Open source overview: https://8thwall.org/docs/open-source
+
+Per the XR Engine License Agreement (binary-only), this project:
+
+1. MUST retain the upstream copyright / attribution headers in the
+   distributed `xr.js` (no modification of the notices embedded in the
+   binary).
+2. MUST surface a license notice and link to the XR Engine License within
+   the built application (e.g. on a credits / about / settings screen).
+
+The runtime UI notice is NOT YET WIRED. Before publishing a production
+build, add the notice to the in-app credits/about screen and confirm the
+exact wording against the upstream license text at the engine repo above.
+
+TODO(prod): integrate runtime notice and verify wording.
