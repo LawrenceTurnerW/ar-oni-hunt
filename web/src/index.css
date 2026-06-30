@@ -80,3 +80,48 @@ body {
   cursor: pointer;
   font-weight: bold;
 }
+
+#map-btn {
+  position: fixed;
+  top: max(0.8em, env(safe-area-inset-top, 0px));
+  right: 0.8em;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#minimap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: #000;
+}
+
+#minimap {
+  position: absolute;
+  inset: 0;
+}
+
+#minimap-close {
+  position: fixed;
+  top: max(0.8em, env(safe-area-inset-top, 0px));
+  right: 0.8em;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+}

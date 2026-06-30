@@ -1,7 +1,8 @@
 import {gpsToLocal, distanceMeters} from './coords'
 import {PHASE} from './oni'
 
-const ITEM_VISIBLE_RADIUS = 7 // m
+const ITEM_VISIBLE_RADIUS = 50 // m - この距離以内で AR に箱が出る
+const ITEM_COLLECT_RADIUS = 7 // m - この距離以内でタップ回収可能
 
 function waitForScene() {
   return new Promise(resolve => {
@@ -24,6 +25,8 @@ export class ArScene {
     this.oni = null
     this.oniEntity = null
     this.onCollect = null
+    this.playerLat = null
+    this.playerLng = null
 
     waitForScene().then(scene => {
       this.scene = scene
@@ -51,11 +54,37 @@ export class ArScene {
   }
 
   updatePlayerPosition(lat, lng) {
+    this.playerLat = lat
+    this.playerLng = lng
     for (const item of this.items) {
       if (item.collected || !item.entity) continue
       const dist = distanceMeters(lat, lng, item.lat, item.lng)
-      item.entity.setAttribute('visible', dist <= ITEM_VISIBLE_RADIUS)
+      if (dist > ITEM_VISIBLE_RADIUS) {
+        item.entity.setAttribute('visible', false)
+      } else {
+        item.entity.setAttribute('visible', true)
+        // 回収可能距離より遠ければ暗めに描画
+        const collectable = dist <= ITEM_COLLECT_RADIUS
+        item.entity.setAttribute('color', collectable ? '#ff3030' : '#aa1010')
+        item.entity.setAttribute('opacity', collectable ? 1 : 0.55)
+        item.entity.setAttribute('transparent', collectable ? false : true)
+      }
     }
+  }
+
+  nearestItem() {
+    if (this.playerLat === null) return null
+    let best = null
+    let bestDist = Infinity
+    for (const item of this.items) {
+      if (item.collected) continue
+      const d = distanceMeters(this.playerLat, this.playerLng, item.lat, item.lng)
+      if (d < bestDist) {
+        bestDist = d
+        best = item
+      }
+    }
+    return best ? {item: best, distance: bestDist} : null
   }
 
   // 鬼の現在位置と phase を AR に反映
@@ -110,6 +139,13 @@ export class ArScene {
 
   _collect(item) {
     if (item.collected) return
+    if (this.playerLat !== null) {
+      const dist = distanceMeters(this.playerLat, this.playerLng, item.lat, item.lng)
+      if (dist > ITEM_COLLECT_RADIUS) {
+        if (this.onTooFar) this.onTooFar(item, dist)
+        return
+      }
+    }
     item.collected = true
     if (item.entity) item.entity.setAttribute('visible', 'false')
     if (this.onCollect) this.onCollect(item)

@@ -24,6 +24,7 @@ export function createHud() {
     heading: null,
     oni: null,
     items: null,
+    nearestItem: null,
   }
 
   function render() {
@@ -46,6 +47,12 @@ export function createHud() {
 
     if (state.items) {
       lines.push(`<b>アイテム</b> ${state.items.collected}/${state.items.total}`)
+    }
+
+    if (state.nearestItem) {
+      const {distance, relativeBearing: rel} = state.nearestItem
+      const note = distance <= 7 ? ' <span class="ok">タップで回収</span>' : ''
+      lines.push(`最寄り: ${fmt(distance, 1)}m ${arrow(rel)} ${rel === null ? '—' : fmt(rel, 0) + '°'}${note}`)
     }
 
     if (state.oni) {
@@ -86,7 +93,21 @@ export function createHud() {
       state.items = data
       render()
     },
+    setNearestItem(data) {
+      state.nearestItem = data
+      render()
+    },
   }
+}
+
+export function createMapButton(onClick) {
+  const btn = document.createElement('button')
+  btn.id = 'map-btn'
+  btn.textContent = '🗺'
+  btn.setAttribute('aria-label', '地図を開く')
+  btn.addEventListener('click', onClick)
+  document.body.appendChild(btn)
+  return btn
 }
 
 export function showFullscreenMessage({title, body, action}) {

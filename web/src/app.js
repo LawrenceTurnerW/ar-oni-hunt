@@ -1,11 +1,15 @@
 import './index.css'
 import {watchPosition, watchHeading} from './geo'
-import {createHud, showFullscreenMessage} from './hud'
+import {createHud, showFullscreenMessage, createMapButton} from './hud'
 import {ArScene} from './ar'
 import {distanceMeters, relativeBearing} from './coords'
 import {loadSetup} from './storage'
 import {buildAdjacency} from './graph'
 import {createOni, tickOni, PHASE} from './oni'
+import {
+  initMiniMap, showMiniMap, hideMiniMap, isMiniMapVisible,
+  updateMiniMapPlayer, updateMiniMapOni, refreshMiniMapItems,
+} from './minimap'
 
 const ONI_TICK_MS = 250
 
@@ -46,6 +50,12 @@ function startGame(setup) {
   const ar = new ArScene()
   const adjacency = buildAdjacency(setup.graph)
 
+  initMiniMap(setup)
+  createMapButton(() => {
+    if (isMiniMapVisible()) hideMiniMap()
+    else showMiniMap()
+  })
+
   for (const item of setup.items) ar.addItem(item)
   hud.setItems({collected: 0, total: setup.items.length})
 
@@ -60,6 +70,8 @@ function startGame(setup) {
   ar.onCollect = () => {
     const collected = setup.items.length - ar.remainingItems()
     hud.setItems({collected, total: setup.items.length})
+    refreshMiniMapItems()
+    updateNearestItemHud()
     if (collected === setup.items.length && !gameOver) {
       gameOver = true
       showFullscreenMessage({
@@ -73,6 +85,8 @@ function startGame(setup) {
   watchHeading(data => {
     hud.setHeading(data)
     if (data.heading !== null) lastHeading = data.heading
+    updateOniHud()
+    updateNearestItemHud()
   })
 
   watchPosition(data => {
@@ -88,6 +102,8 @@ function startGame(setup) {
 
     ar.updatePlayerPosition(data.lat, data.lng)
     updateOniHud()
+    updateNearestItemHud()
+    updateMiniMapPlayer(data.lat, data.lng)
   })
 
   function updateOniHud() {
@@ -99,12 +115,26 @@ function startGame(setup) {
     hud.setOni({phase: oni.phase, distance: dist, relativeBearing: rel})
   }
 
+  function updateNearestItemHud() {
+    if (!playerPos) return
+    const nearest = ar.nearestItem()
+    if (!nearest) {
+      hud.setNearestItem(null)
+      return
+    }
+    const rel = lastHeading !== null
+      ? relativeBearing(playerPos.lat, playerPos.lng, lastHeading, nearest.item.lat, nearest.item.lng)
+      : null
+    hud.setNearestItem({distance: nearest.distance, relativeBearing: rel})
+  }
+
   setInterval(() => {
     if (gameOver) return
     if (!playerPos) return
     tickOni(oni, playerPos, ONI_TICK_MS / 1000)
     ar.syncOni()
     updateOniHud()
+    updateMiniMapOni(oni.lat, oni.lng, oni.phase)
 
     if (oni.phase === PHASE.CAUGHT && !gameOver) {
       gameOver = true
