@@ -69,3 +69,29 @@ html, body {
   border-color: #185;
   font-weight: bold;
 }
+
+#actions button#simulate {
+  background: #59c;
+  color: white;
+  border-color: #38a;
+}
+
+#actions button#stopSim {
+  background: #a44;
+  color: white;
+  border-color: #722;
+}
+
+#simStatus {
+  margin-top: 10px;
+  padding: 8px;
+  background: #eef;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  line-height: 1.4;
+}
+
+#simStatus .phase-patrol { color: #a60; }
+#simStatus .phase-chase { color: #c00; font-weight: bold; }
+#simStatus .phase-caught { color: #555; font-weight: bold; }
