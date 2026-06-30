@@ -8,11 +8,18 @@ const EXCLUDED_HIGHWAYS = [
   'motorway_link', 'trunk_link', 'primary_link', 'secondary_link',
 ]
 const EXCLUDED_REGEX = `^(${EXCLUDED_HIGHWAYS.join('|')})$`
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+
+// 公開 Overpass エンドポイントを順に試す。
+// 主サーバ (overpass-api.de) は混雑して 504 を返すことが多いので、ミラーから先に。
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
+]
 
 export async function fetchRoadGraph(bbox) {
   const query = `
-[out:json][timeout:25];
+[out:json][timeout:60];
 (
   way["highway"]["highway"!~"${EXCLUDED_REGEX}"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
 );
@@ -21,14 +28,24 @@ out body;
 out skel qt;
 `.trim()
 
-  const res = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    body: 'data=' + encodeURIComponent(query),
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-  })
-
-  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`)
-  return res.json()
+  const errors = []
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(query),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      })
+      if (!res.ok) {
+        errors.push(`${new URL(url).host}: HTTP ${res.status}`)
+        continue
+      }
+      return await res.json()
+    } catch (err) {
+      errors.push(`${new URL(url).host}: ${err.message}`)
+    }
+  }
+  throw new Error(`Overpass 全エンドポイント失敗 — ${errors.join(' / ')}`)
 }
 
 export function buildGraph(osmData) {
