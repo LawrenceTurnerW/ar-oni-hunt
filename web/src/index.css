@@ -29,3 +29,7 @@ body {
 #hud .err {
   color: #f88;
 }
+
+#hud .ok {
+  color: #6f6;
+}

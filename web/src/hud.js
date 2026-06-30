@@ -13,6 +13,10 @@ export function createHud() {
     pos: null,
     posError: null,
     heading: null,
+    origin: null,
+    item: null,
+    itemDistance: null,
+    collected: false,
   }
 
   function render() {
@@ -34,9 +38,24 @@ export function createHud() {
       const h = state.heading.heading
       const mode = state.heading.absolute ? 'abs' : 'rel'
       lines.push(`${h === null ? '—' : fmt(h, 1) + '°'} (${mode})`)
-      lines.push(`α:${fmt(state.heading.alpha, 1)} β:${fmt(state.heading.beta, 1)} γ:${fmt(state.heading.gamma, 1)}`)
     } else {
       lines.push('waiting…')
+    }
+
+    if (state.origin) {
+      lines.push('<b>Origin</b>')
+      lines.push(`lat: ${fmt(state.origin.lat, 6)}`)
+      lines.push(`lng: ${fmt(state.origin.lng, 6)}`)
+      lines.push(`heading: ${fmt(state.origin.headingDeg, 1)}°`)
+    }
+
+    if (state.item) {
+      lines.push('<b>Item</b>')
+      if (state.collected) {
+        lines.push('<span class="ok">collected!</span>')
+      } else {
+        lines.push(`dist: ${fmt(state.itemDistance, 2)}m`)
+      }
     }
 
     el.innerHTML = lines.join('<br>')
@@ -57,6 +76,23 @@ export function createHud() {
     },
     setHeading(data) {
       state.heading = data
+      render()
+    },
+    setOrigin(origin) {
+      state.origin = origin
+      render()
+    },
+    setItem(item) {
+      state.item = item
+      state.collected = false
+      render()
+    },
+    setItemDistance(distance) {
+      state.itemDistance = distance
+      render()
+    },
+    markCollected() {
+      state.collected = true
       render()
     },
   }
