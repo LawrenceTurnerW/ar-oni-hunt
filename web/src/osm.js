@@ -1,14 +1,20 @@
 import {distanceMeters} from './coords'
 
-const ALLOWED_HIGHWAYS = ['footway', 'path', 'pedestrian', 'residential']
-const HIGHWAY_REGEX = `^(${ALLOWED_HIGHWAYS.join('|')})$`
+// 安全のため除外する道路種別。大通り (歩道なし or 車多め) は遊ばせない。
+// それ以外（residential / unclassified / service / living_street / tertiary /
+// footway / path / pedestrian / cycleway / steps / track …）は全部 OK。
+const EXCLUDED_HIGHWAYS = [
+  'motorway', 'trunk', 'primary', 'secondary',
+  'motorway_link', 'trunk_link', 'primary_link', 'secondary_link',
+]
+const EXCLUDED_REGEX = `^(${EXCLUDED_HIGHWAYS.join('|')})$`
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 
 export async function fetchRoadGraph(bbox) {
   const query = `
 [out:json][timeout:25];
 (
-  way["highway"~"${HIGHWAY_REGEX}"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
+  way["highway"]["highway"!~"${EXCLUDED_REGEX}"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});
 );
 out body;
 >;

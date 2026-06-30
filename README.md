@@ -7,7 +7,7 @@
 - 公園や広場で 1 人プレイ
 - GPS で定義したフィールドに AR アイテムが配置され、全部集めるとクリア
 - AI 鬼が徘徊。一定距離まで近づくと追跡され、捕獲されるとゲームオーバー
-- 鬼・アイテムはともに OpenStreetMap の歩道・小道（`footway/path/pedestrian/residential`）上にのみ配置されるので、車道に立ち入る必要はない
+- 鬼・アイテムはともに OpenStreetMap の道路グラフ上に配置される。`motorway/trunk/primary/secondary` 等の大通りは除外、それ以外の生活道路・歩道・小道は含む
 
 ## 対象プラットフォーム
 

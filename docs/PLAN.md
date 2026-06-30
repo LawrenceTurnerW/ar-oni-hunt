@@ -19,7 +19,7 @@
 ### プレイヤー体験のフロー
 
 1. **フィールド設定**: プレイヤーがゲーム開始時に多角形でフィールドを定義（フィールドの頂点を順番にタップで指定、最低 3 点）。多角形が難しければ「中心 + 半径」の円でフォールバック
-2. **道路データ取得**: フィールドの bounding box で OpenStreetMap (Overpass API) から `footway/path/pedestrian/residential` のみを取得し、グラフを構築
+2. **道路データ取得**: フィールドの bounding box で OpenStreetMap (Overpass API) から道路を取得し、グラフを構築。`motorway/trunk/primary/secondary`（とその `_link`）は安全のため除外、それ以外（`residential/unclassified/service/living_street/tertiary/footway/path/pedestrian/cycleway/steps/track` 等）は全部含める
 3. **アイテム配置**: 道沿い（OSM path の ±5m 範囲）に N 個のアイテムを自動配置
 4. **鬼の出現**: AI 鬼が 1 体、道路グラフ上のランダム node からスタート
 5. **プレイ**: スマホをかざしてアイテム/鬼を視認、走って集める/逃げる
@@ -37,7 +37,7 @@
 
 **状態マシン**: `Patrol` → `Detect` → `Chase` → `Catch` / `Return to patrol`
 
-- **道路グラフ上のみを移動**（OSM `footway/path/pedestrian/residential`）。グラフ取得失敗 or 道が無いフィールドでは「フィールド内ランダム walk」にフォールバック
+- **道路グラフ上のみを移動**（OSM の道路全般、ただし `motorway/trunk/primary/secondary` は除外）。グラフ取得失敗 or 道が無いフィールドでは「フィールド内ランダム walk」にフォールバック
 - **Patrol**: グラフのランダム node を目的地に選び、最短経路で向かう（速度 ~3 km/h = 徒歩遅め）
 - **Detect**: プレイヤーとの GPS 距離が **15m 以内** で「発見」状態に。視覚的な警告（画面赤フラッシュ、振動）
 - **Chase**: 発見後はプレイヤーに最も近い node を目的地に切り替えて追跡。速度 +20%（早歩き ~4 km/h）
@@ -77,7 +77,7 @@
 
 ゲーム性より優先する設計判断:
 
-- **道路グラフによる行動制約**: 鬼・アイテムとも `footway/path/pedestrian/residential` のみに乗せる。大通り（`primary`/`secondary`/`motorway`）は除外
+- **道路グラフによる行動制約**: 鬼・アイテムとも OSM の道路グラフ上にのみ乗せる。大通り（`motorway/trunk/primary/secondary` とその `_link`）は除外、それ以外（生活道路・歩道・小道・服務路など）は許可
 - **GPS 誤差を吸収できる距離設定**: 回収 7m / 発見 15m / 捕獲 5m とし、5-10m の GPS 誤差より広く取る
 - **フィールド推奨ルール**を README に明記: 車道・水場・私有地を含めない
 - **ゲーム開始時の警告**: 「周囲の交通に注意」「画面を注視せず適宜顔を上げる」を毎回表示
@@ -131,7 +131,7 @@
 
 ### Step 3: フィールド + 道路グラフ + AI 鬼
 - **フィールド定義 UI**: マップ画面でプレイヤーが頂点をタップして多角形を作成（最低 3 点）。実装が重ければ「中心 + 半径」の円でフォールバック可
-- **OSM 道路グラフ取得**: フィールドの bounding box で Overpass API にクエリ（`way[highway~"^(footway|path|pedestrian|residential)$"]`）、node + edge のグラフを構築。失敗時はランダム walk にフォールバック
+- **OSM 道路グラフ取得**: フィールドの bounding box で Overpass API にクエリ（`way["highway"]["highway"!~"^(motorway|trunk|primary|secondary)(_link)?$"]` — deny-list 方式）、node + edge のグラフを構築。失敗時はランダム walk にフォールバック
 - **アイテム配置ロジック**: 道路グラフの edge 上から ±5m 範囲でランダムに N 個配置
 - **鬼の状態マシン**実装（Patrol → Detect → Chase → Catch）。グラフ上の最短経路探索（Dijkstra で十分）
 - **鬼の AR モデル表示**: MVP は赤いキューブ
@@ -184,7 +184,7 @@ ar-oni-hunt/
 |---|---|
 | 対象プラットフォーム | Android Chrome のみ |
 | フィールド設定 UI | プレイヤーが多角形で定義（最低 3 点）。実装難しければ円フォールバック |
-| 鬼の移動 | OSM 道路グラフ上のみ（`footway/path/pedestrian/residential`）。フォールバック: ランダム walk |
+| 鬼の移動 | OSM 道路グラフ上のみ。除外: `motorway/trunk/primary/secondary` (+`_link`)。フォールバック: ランダム walk |
 | アイテム配置 | OSM 道路グラフの ±5m 範囲 |
 | アイテム回収距離 | 7m |
 | 鬼の捕獲距離 | 5m |
