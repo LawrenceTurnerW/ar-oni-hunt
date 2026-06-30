@@ -1,5 +1,5 @@
 import {distanceMeters} from './coords'
-import {findNearestNode, shortestPath} from './graph'
+import {findNearestNodeIn, reachableNodes, shortestPath} from './graph'
 
 export const PHASE = {
   PATROL: 'patrol',
@@ -15,21 +15,38 @@ export const RETURN_RADIUS = 20 // chase 解除距離
 export const RETURN_DELAY = 5 // s
 
 export function createOni({graph, adjacency}) {
-  const nodeIds = Array.from(graph.nodes.keys())
-  if (nodeIds.length === 0) {
-    throw new Error('Cannot spawn oni: empty graph')
+  // 孤立ノード (edge を持たないもの) は除外して候補化。
+  const candidateNodeIds = Array.from(adjacency.keys())
+  if (candidateNodeIds.length === 0) {
+    throw new Error('Cannot spawn oni: no connected nodes in graph')
   }
-  const startNodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)]
-  const startNode = graph.nodes.get(startNodeId)
+
+  // 「ある程度大きい連結成分」内のノードに spawn したい。
+  // ランダム start を試して reachable.size が最大のものを採用 (最大10回試行)。
+  let bestStart = null
+  let bestReachable = null
+  for (let i = 0; i < 10; i++) {
+    const candidate = candidateNodeIds[Math.floor(Math.random() * candidateNodeIds.length)]
+    const r = reachableNodes(adjacency, candidate)
+    if (!bestReachable || r.size > bestReachable.size) {
+      bestStart = candidate
+      bestReachable = r
+      if (r.size > 50) break
+    }
+  }
+
+  const startNode = graph.nodes.get(bestStart)
   return {
     lat: startNode.lat,
     lng: startNode.lng,
     phase: PHASE.PATROL,
-    currentNodeId: startNodeId,
+    currentNodeId: bestStart,
     pathQueue: [],
     awayTimer: 0,
     _graph: graph,
     _adjacency: adjacency,
+    _reachable: bestReachable,
+    _reachableArr: Array.from(bestReachable),
   }
 }
 
@@ -63,24 +80,24 @@ export function tickOni(oni, player, dt) {
     }
   }
 
-  // Chase 中は player の最寄り node を毎 tick 目標にする (path が空 or 短い時のみ
-  // 再計算するとパフォーマンス的に楽)
+  // 目標選びは「自分の連結成分内」に限定。OSM の分断成分でハマるのを防ぐ。
   if (oni.phase === PHASE.CHASE) {
     if (oni.pathQueue.length === 0) {
-      const target = findNearestNode(player.lat, player.lng, oni._graph)
-      if (target != null) {
+      const target = findNearestNodeIn(player.lat, player.lng, oni._graph, oni._reachable)
+      if (target != null && target !== oni.currentNodeId) {
         oni.pathQueue = shortestPath(oni._adjacency, oni.currentNodeId, target)
         if (oni.pathQueue[0] === oni.currentNodeId) oni.pathQueue.shift()
       }
     }
   } else if (oni.phase === PHASE.PATROL) {
-    if (oni.pathQueue.length === 0) {
-      const nodeIds = Array.from(oni._graph.nodes.keys())
+    if (oni.pathQueue.length === 0 && oni._reachableArr.length > 1) {
       let attempts = 0
       while (oni.pathQueue.length === 0 && attempts < 5) {
-        const target = nodeIds[Math.floor(Math.random() * nodeIds.length)]
-        oni.pathQueue = shortestPath(oni._adjacency, oni.currentNodeId, target)
-        if (oni.pathQueue[0] === oni.currentNodeId) oni.pathQueue.shift()
+        const target = oni._reachableArr[Math.floor(Math.random() * oni._reachableArr.length)]
+        if (target !== oni.currentNodeId) {
+          oni.pathQueue = shortestPath(oni._adjacency, oni.currentNodeId, target)
+          if (oni.pathQueue[0] === oni.currentNodeId) oni.pathQueue.shift()
+        }
         attempts++
       }
     }
