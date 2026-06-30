@@ -72,9 +72,12 @@ const makeDefaultHtmlLoader = () => ({
 })
 
 const config = {
-  entry: path.join(srcPath, 'app.js'),
+  entry: {
+    app: path.join(srcPath, 'app.js'),
+    setup: path.join(srcPath, 'setup.js'),
+  },
   output: {
-    filename: 'bundle.js',
+    filename: '[name].bundle.js',
     path: distPath,
     publicPath: '/',
   },
@@ -82,6 +85,13 @@ const config = {
     new HtmlWebpackPlugin({
       template: path.join(srcPath, 'index.html'),
       filename: 'index.html',
+      chunks: ['app'],
+      inject: false,
+    }),
+    new HtmlWebpackPlugin({
+      template: path.join(srcPath, 'setup.html'),
+      filename: 'setup.html',
+      chunks: ['setup'],
       inject: false,
     }),
     new CopyWebpackPlugin({

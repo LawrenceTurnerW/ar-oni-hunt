@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>ar-oni-hunt / セットアップ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="panel">
+    <h1>フィールドを設定</h1>
+    <p id="instructions">マップをタップして頂点を追加（最低 3 点）</p>
+    <div id="stats">頂点: 0</div>
+    <div id="actions">
+      <button id="reset">リセット</button>
+      <button id="confirm" disabled>これで決定 → 道路取得</button>
+      <button id="start" hidden>ゲーム開始</button>
+    </div>
+    <div id="status"></div>
+  </div>
+  <script src="setup.bundle.js"></script>
+</body>
+</html>
