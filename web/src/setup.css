@@ -95,3 +95,84 @@ html, body {
 #simStatus .phase-patrol { color: #a60; }
 #simStatus .phase-chase { color: #c00; font-weight: bold; }
 #simStatus .phase-caught { color: #555; font-weight: bold; }
+
+#slotsPanel {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+}
+
+#slotsPanel h2 {
+  font-size: 13px;
+  margin: 0 0 6px 0;
+  color: #555;
+  font-weight: bold;
+}
+
+#slotSaveRow {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+#slotSaveRow input {
+  flex: 1;
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+}
+
+#slotSaveRow button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #888;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#slotList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.slot-row .slot-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-row button {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid #aaa;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.slot-row button.load-btn {
+  background: #def;
+}
+
+.slot-row button.delete-btn {
+  color: #a00;
+}
+
+#slotList .empty {
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
+}

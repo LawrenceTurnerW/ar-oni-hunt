@@ -2,7 +2,7 @@ import './setup.css'
 import {fetchRoadGraph, buildGraph} from './osm'
 import {fieldBbox, fieldCentroid} from './field'
 import {placeItems} from './items'
-import {saveSetup} from './storage'
+import {saveSetup, listSlots, saveSlot, loadSlot, deleteSlot} from './storage'
 import {buildAdjacency} from './graph'
 import {createOni, tickOni, PHASE} from './oni'
 import {distanceMeters} from './coords'
@@ -64,6 +64,9 @@ function init() {
   document.getElementById('start').addEventListener('click', startGame)
   document.getElementById('simulate').addEventListener('click', startSim)
   document.getElementById('stopSim').addEventListener('click', stopSim)
+  document.getElementById('saveSlot').addEventListener('click', onSaveSlot)
+
+  renderSlotList()
 }
 
 function addVertex(lat, lng) {
@@ -256,12 +259,95 @@ function updateUI() {
   const simulateBtn = document.getElementById('simulate')
   const stopBtn = document.getElementById('stopSim')
   const stats = document.getElementById('stats')
+  const slotSaveRow = document.getElementById('slotSaveRow')
 
   confirmBtn.disabled = state.phase !== 'editing' || state.polygon.length < 3
   startBtn.hidden = state.phase !== 'ready'
   simulateBtn.hidden = state.phase !== 'ready'
   stopBtn.hidden = state.phase !== 'simulating'
+  slotSaveRow.hidden = !(state.phase === 'ready' || state.phase === 'simulating')
   stats.textContent = `頂点: ${state.polygon.length}`
+}
+
+function renderSlotList() {
+  const list = document.getElementById('slotList')
+  const slots = listSlots()
+  if (slots.length === 0) {
+    list.innerHTML = '<div class="empty">保存済みなし</div>'
+    return
+  }
+  list.innerHTML = ''
+  for (const slot of slots) {
+    const row = document.createElement('div')
+    row.className = 'slot-row'
+    const date = new Date(slot.savedAt)
+    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+    row.innerHTML = `
+      <span class="slot-name" title="${escapeHtml(slot.name)} (${date.toLocaleString()})">
+        ${escapeHtml(slot.name)} <small style="color:#888">${dateStr}</small>
+      </span>
+      <button class="load-btn" data-id="${slot.id}">読込</button>
+      <button class="delete-btn" data-id="${slot.id}">削除</button>
+    `
+    list.appendChild(row)
+  }
+  list.querySelectorAll('.load-btn').forEach(btn => {
+    btn.addEventListener('click', () => onLoadSlot(btn.dataset.id))
+  })
+  list.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => onDeleteSlot(btn.dataset.id))
+  })
+}
+
+function onSaveSlot() {
+  if (state.phase !== 'ready' && state.phase !== 'simulating') return
+  const input = document.getElementById('slotName')
+  const name = input.value.trim() || `slot-${new Date().toLocaleString()}`
+  try {
+    saveSlot(name, {field: state.polygon, graph: state.graph, items: state.items})
+    input.value = ''
+    renderSlotList()
+    setStatus(`「${name}」を保存しました`)
+  } catch (err) {
+    setStatus(`保存失敗: ${err.message}`)
+  }
+}
+
+function onLoadSlot(id) {
+  if (state.phase === 'simulating') stopSim()
+  const slot = loadSlot(id)
+  if (!slot) {
+    setStatus('スロットが見つかりません')
+    return
+  }
+  reset()
+  state.polygon = slot.field
+  state.graph = slot.graph
+  state.adjacency = buildAdjacency(slot.graph)
+  state.items = slot.items
+  state.phase = 'ready'
+
+  redrawPolygon()
+  drawGraph(slot.graph)
+  drawItems(slot.items)
+
+  const bounds = L.latLngBounds(slot.field.map(p => [p.lat, p.lng]))
+  state.map.fitBounds(bounds, {padding: [40, 40]})
+
+  setStatus(`「${slot.name}」を読込 (${slot.graph.nodes.size} ノード, ${slot.items.length} アイテム)`)
+  updateUI()
+}
+
+function onDeleteSlot(id) {
+  if (!confirm('このスロットを削除しますか？')) return
+  deleteSlot(id)
+  renderSlotList()
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]))
 }
 
 function setStatus(msg) {
