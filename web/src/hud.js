@@ -1,7 +1,16 @@
+import {PHASE} from './oni'
+
 function fmt(num, digits = 6) {
   if (num === null || num === undefined) return '—'
   if (typeof num !== 'number' || Number.isNaN(num)) return String(num)
   return num.toFixed(digits)
+}
+
+function arrow(rel) {
+  if (rel === null || rel === undefined) return ''
+  if (Math.abs(rel) < 15) return '↑'
+  if (Math.abs(rel) > 165) return '↓'
+  return rel < 0 ? '←' : '→'
 }
 
 export function createHud() {
@@ -13,10 +22,8 @@ export function createHud() {
     pos: null,
     posError: null,
     heading: null,
-    origin: null,
-    item: null,
-    itemDistance: null,
-    collected: false,
+    oni: null,
+    items: null,
   }
 
   function render() {
@@ -26,36 +33,29 @@ export function createHud() {
     if (state.posError) {
       lines.push(`<span class="err">${state.posError}</span>`)
     } else if (state.pos) {
-      lines.push(`lat: ${fmt(state.pos.lat, 6)}`)
-      lines.push(`lng: ${fmt(state.pos.lng, 6)}`)
-      lines.push(`±${fmt(state.pos.accuracy, 1)}m`)
+      lines.push(`${fmt(state.pos.lat, 5)}, ${fmt(state.pos.lng, 5)} ±${fmt(state.pos.accuracy, 0)}m`)
     } else {
       lines.push('acquiring…')
     }
 
-    lines.push('<b>Heading</b>')
     if (state.heading) {
       const h = state.heading.heading
       const mode = state.heading.absolute ? 'abs' : 'rel'
-      lines.push(`${h === null ? '—' : fmt(h, 1) + '°'} (${mode})`)
-    } else {
-      lines.push('waiting…')
+      lines.push(`heading: ${h === null ? '—' : fmt(h, 0) + '°'} (${mode})`)
     }
 
-    if (state.origin) {
-      lines.push('<b>Origin</b>')
-      lines.push(`lat: ${fmt(state.origin.lat, 6)}`)
-      lines.push(`lng: ${fmt(state.origin.lng, 6)}`)
-      lines.push(`heading: ${fmt(state.origin.headingDeg, 1)}°`)
+    if (state.items) {
+      lines.push(`<b>アイテム</b> ${state.items.collected}/${state.items.total}`)
     }
 
-    if (state.item) {
-      lines.push('<b>Item</b>')
-      if (state.collected) {
-        lines.push('<span class="ok">collected!</span>')
-      } else {
-        lines.push(`dist: ${fmt(state.itemDistance, 2)}m`)
-      }
+    if (state.oni) {
+      const phaseLabel = {
+        [PHASE.PATROL]: 'patrol',
+        [PHASE.CHASE]: '<span class="warn">CHASE!</span>',
+        [PHASE.CAUGHT]: '<span class="err">CAUGHT</span>',
+      }[state.oni.phase] ?? state.oni.phase
+      lines.push(`<b>鬼</b> ${phaseLabel}`)
+      lines.push(`dist: ${fmt(state.oni.distance, 1)}m ${arrow(state.oni.relativeBearing)} ${fmt(state.oni.relativeBearing, 0)}°`)
     }
 
     el.innerHTML = lines.join('<br>')
@@ -78,22 +78,31 @@ export function createHud() {
       state.heading = data
       render()
     },
-    setOrigin(origin) {
-      state.origin = origin
+    setOni(data) {
+      state.oni = data
       render()
     },
-    setItem(item) {
-      state.item = item
-      state.collected = false
-      render()
-    },
-    setItemDistance(distance) {
-      state.itemDistance = distance
-      render()
-    },
-    markCollected() {
-      state.collected = true
+    setItems(data) {
+      state.items = data
       render()
     },
   }
+}
+
+export function showFullscreenMessage({title, body, action}) {
+  document.getElementById('overlay')?.remove()
+  const wrap = document.createElement('div')
+  wrap.id = 'overlay'
+  wrap.innerHTML = `
+    <div class="overlay-card">
+      <h1>${title}</h1>
+      <p>${body}</p>
+      ${action ? `<button id="overlay-action">${action.label}</button>` : ''}
+    </div>
+  `
+  document.body.appendChild(wrap)
+  if (action) {
+    document.getElementById('overlay-action').addEventListener('click', action.onClick)
+  }
+  return () => wrap.remove()
 }

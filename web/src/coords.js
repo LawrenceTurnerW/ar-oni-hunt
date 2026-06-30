@@ -43,3 +43,19 @@ export function offsetGps(lat0, lng0, northMeters, eastMeters) {
     lng: lng0 + eastMeters / metersPerDegLng(lat0),
   }
 }
+
+// (lat0, lng0) から (lat, lng) への方位角 (北=0、時計回り)
+export function bearingFromNorth(lat0, lng0, lat, lng) {
+  const offset = gpsToWorldOffset(lat0, lng0, lat, lng)
+  return (Math.atan2(offset.east, offset.north) * 180 / Math.PI + 360) % 360
+}
+
+// プレイヤーが headingDeg を向いている時、target への相対方向 (-180〜180)。
+// 負: 左、正: 右、0: 正面。
+export function relativeBearing(lat0, lng0, headingDeg, lat, lng) {
+  const abs = bearingFromNorth(lat0, lng0, lat, lng)
+  let rel = abs - headingDeg
+  while (rel > 180) rel -= 360
+  while (rel < -180) rel += 360
+  return rel
+}
