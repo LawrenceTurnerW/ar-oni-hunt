@@ -118,6 +118,9 @@ const config = {
   mode: 'production',
   context: srcPath,
   devServer: {
+    server: 'https',
+    host: '0.0.0.0',
+    allowedHosts: 'all',
     open: false,
     compress: true,
     hot: true,
